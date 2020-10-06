@@ -36,34 +36,37 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class updateUserInfo extends AppCompatActivity {
 
-    Button updateInfo;
-    EditText Username, Password, Email;
-    CircleImageView profilePic;
-    TextView upload_pic;
-
-    private StorageTask uploadTask;
-    private StorageReference mStorageRef;
-    private String checker;
     private Uri imageUri;
-    private String myUrl;
+    private String myUrl = "";
+    private StorageTask uploadTask;
+    private StorageReference mStorage;
+    private String checker = "";
+
+    CircleImageView displayProfilePic;
+    TextView chooseProfilePic;
+    EditText username, phone, password, email;
+    Button updateButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_update_user_info);
 
-        Username = (EditText)findViewById(R.id.username);
-        Password = (EditText)findViewById(R.id.password);
-        Email = (EditText)findViewById(R.id.email);
-        profilePic = (CircleImageView)findViewById(R.id.img_preview);
-        upload_pic = (TextView)findViewById(R.id.uploadPic);
-        updateInfo = (Button)findViewById(R.id.update);
+        mStorage = FirebaseStorage.getInstance().getReference().child("Profile_Picture");
 
-        mStorageRef = FirebaseStorage.getInstance().getReference().child("ProfilePicture");
+        displayProfilePic = (CircleImageView)findViewById(R.id.img_preview);
+        chooseProfilePic = (TextView)findViewById(R.id.uploadPic);
 
-        userInfoDisplay(Username,Password,Email,profilePic);
+        username = (EditText)findViewById(R.id.username);
+        phone = (EditText)findViewById(R.id.phone);
+        password = (EditText)findViewById(R.id.password);
+        email = (EditText)findViewById(R.id.email);
 
-        upload_pic.setOnClickListener(new View.OnClickListener() {
+        updateButton = (Button)findViewById(R.id.update);
+
+        UserInfoDisplay(username,phone,email,displayProfilePic);
+
+        chooseProfilePic.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
@@ -74,33 +77,37 @@ public class updateUserInfo extends AppCompatActivity {
             }
         });
 
-        updateInfo.setOnClickListener(new View.OnClickListener() {
+        updateButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-            if (checker.equals("clicked")){
-                userInfoSaved();
-            }
-            else{
-                updateOnlyUserInfo();
-            }
+
+                if (checker.equals("clicked")){
+                    userInfoSaved();
+                }
+                else{
+                    updateOnlyUserInfo();
+                }
+
             }
         });
 
     }
 
-
     private void updateOnlyUserInfo() {
+
         DatabaseReference RootRef;
         RootRef = FirebaseDatabase.getInstance().getReference().child("Users");
 
         HashMap<String,Object>userData = new HashMap<>();
-        userData.put("username", Username.getText().toString());
-        userData.put("password", Password.getText().toString());
-        userData.put("email", Email.getText().toString());
+        userData.put("username", username.getText().toString());
+        userData.put("phone", phone.getText().toString());
+        userData.put("password", password.getText().toString());
+        userData.put("email", email.getText().toString());
 
         RootRef.child(Prevelant.currentOnlineUser.getUsername()).updateChildren(userData);
-        startActivity(new Intent(updateUserInfo.this,dashboard.class));
-        Toast.makeText(this, "Profile Successfully Updated", Toast.LENGTH_SHORT).show();
+
+        startActivity(new Intent(updateUserInfo.this, dashboard.class));
+        Toast.makeText(this, "Profile successfully updated", Toast.LENGTH_SHORT).show();
         finish();
 
     }
@@ -110,109 +117,124 @@ public class updateUserInfo extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE && resultCode == RESULT_OK && data != null){
-            CropImage.ActivityResult results = CropImage.getActivityResult(data);
-            imageUri = results.getUri();
-            profilePic.setImageURI(imageUri);
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            imageUri = result.getUri();
+            displayProfilePic.setImageURI(imageUri);
         }
         else {
-            Toast.makeText(this, "APP failed to open gallery", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(updateUserInfo.this, updateUserInfo.class ));
+            startActivity(new Intent(updateUserInfo.this, updateUserInfo.class));
+            Toast.makeText(this, "Error has occurred, please try again", Toast.LENGTH_SHORT).show();
+            finish();
         }
+
     }
 
     private void userInfoSaved() {
-        if (Username.getText().toString().isEmpty()){
+        if (TextUtils.isEmpty(username.getText().toString())){
             Toast.makeText(this, "Username cannot be empty", Toast.LENGTH_SHORT).show();
         }
-        else if (TextUtils.isEmpty(Password.getText().toString())){
+        else if (TextUtils.isEmpty(phone.getText().toString())){
+            Toast.makeText(this, "Phone Number cannot be empty", Toast.LENGTH_SHORT).show();
+        }
+        else if (TextUtils.isEmpty(password.getText().toString())){
             Toast.makeText(this, "Password cannot be empty", Toast.LENGTH_SHORT).show();
         }
-        else  if (TextUtils.isEmpty(Email.getText().toString())){
+        else if (TextUtils.isEmpty(email.getText().toString())){
             Toast.makeText(this, "Email cannot be empty", Toast.LENGTH_SHORT).show();
         }
+
         else if (checker.equals("clicked")){
-            updateImg();
+            uploadImg();
         }
     }
 
-    private void updateImg() {
+    private void uploadImg() {
         final ProgressDialog loading = new ProgressDialog(this);
         loading.setTitle("Updating Profile");
-        loading.setMessage("Please wait, Loading...");
+        loading.setMessage("Please wait while updating your profile");
         loading.setCanceledOnTouchOutside(false);
         loading.show();
 
         if (imageUri != null){
-            final StorageReference imgStorage = mStorageRef.child(Prevelant.currentOnlineUser.getUsername() + ".jpg");
-            uploadTask = imgStorage.getFile(imageUri);
 
+            final  StorageReference fileRef = mStorage.child(Prevelant.currentOnlineUser.getPhone() + ".jpg");
+            uploadTask = fileRef.putFile(imageUri);
             uploadTask.continueWithTask(new Continuation() {
                 @Override
                 public Object then(@NonNull Task task) throws Exception {
-
-                    if (!(task.isSuccessful())){
+                    if (!task.isSuccessful()){
                         throw task.getException();
                     }
-                    return imgStorage.getDownloadUrl();
+                    return fileRef.getDownloadUrl();
                 }
             }).addOnCompleteListener(new OnCompleteListener<Uri>() {
                 @Override
                 public void onComplete(@NonNull Task<Uri> task) {
                     if (task.isSuccessful()){
-                        Uri downloadUri = task.getResult();
-                        myUrl = downloadUri.toString();
-                        DatabaseReference databaseRef = FirebaseDatabase.getInstance().getReference().child("Users");
+                        Uri downloadUrl = task.getResult();
+                        myUrl = downloadUrl.toString();
+                        DatabaseReference RootRef = FirebaseDatabase.getInstance().getReference().child("Users");
 
                         HashMap<String,Object>userData = new HashMap<>();
-                        userData.put("username", Username.getText().toString());
-                        userData.put("password", Password.getText().toString());
-                        userData.put("email", Email.getText().toString());
-                        userData.put("Image", myUrl);
+                        userData.put("username", username.getText().toString());
+                        userData.put("phone", phone.getText().toString());
+                        userData.put("password", password.getText().toString());
+                        userData.put("email", email.getText().toString());
+                        userData.put("image", myUrl);
 
-                        databaseRef.child(Prevelant.currentOnlineUser.getUsername()).updateChildren(userData);
+                        RootRef.child(Prevelant.currentOnlineUser.getUsername()).updateChildren(userData);
                         loading.dismiss();
-
                         startActivity(new Intent(updateUserInfo.this, dashboard.class));
-                        Toast.makeText(updateUserInfo.this, "Profile was successfully updated", Toast.LENGTH_SHORT).show();
                         finish();
                     }
                     else {
                         loading.dismiss();
-                        Toast.makeText(updateUserInfo.this, "Connection Failed!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(updateUserInfo.this, "Check your internet connection", Toast.LENGTH_SHORT).show();
                     }
                 }
             });
         }
+        else {
+            Toast.makeText(this, "Choose a profile picture", Toast.LENGTH_SHORT).show();
+        }
+
     }
 
 
-    private void userInfoDisplay(final EditText username, final EditText password, final EditText email, final CircleImageView profilePic) {
-
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference()
+    private void UserInfoDisplay(final EditText username, final EditText phone, final EditText email, final CircleImageView displayProfilePic) {
+        DatabaseReference RootRef = FirebaseDatabase.getInstance().getReference()
                 .child("Users").child(Prevelant.currentOnlineUser.getUsername());
-        userRef.addValueEventListener(new ValueEventListener() {
+
+        RootRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()){
-                    if (snapshot.child("Image").exists()){
-                        String Image = snapshot.child("Image").getValue().toString();
-                        String Username = snapshot.child("username").getValue().toString();
-                        String Password = snapshot.child("password").getValue().toString();
-                        String Email = snapshot.child("email").getValue().toString();
+                    if (snapshot.child("image").exists()){
+                        String Image = snapshot.child("image").getValue().toString();
+                        String name = snapshot.child("username").getValue().toString();
+                        String phoneNum = snapshot.child("phone").getValue().toString();
+                        String passCode = snapshot.child("password").getValue().toString();
+                        String emailAddress = snapshot.child("email").getValue().toString();
 
+                        Picasso.get()
+                                .load(Image)
+                                .into(displayProfilePic);
 
-                        Picasso.get().load(Image).into(profilePic);
-                        username.setText(Username);
-                        email.setText(Email);
+                        username.setText(name);
+                        phone.setText(phoneNum);
+                        password.setText(passCode);
+                        email.setText(emailAddress);
 
                     }
                 }
+
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-
+                Toast.makeText(updateUserInfo.this, ""+ error, Toast.LENGTH_SHORT).show();
             }
         });
     }
+
 }

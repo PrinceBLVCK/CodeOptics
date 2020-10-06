@@ -32,6 +32,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.StorageTask;
 import com.google.firebase.storage.UploadTask;
+import com.theartofdev.edmodo.cropper.CropImage;
 
 import java.io.File;
 import java.lang.reflect.Type;
@@ -85,16 +86,22 @@ public class register extends AppCompatActivity {
     }
 
     private void openGallery() {
-        Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-        startActivityForResult(gallery, GalleryPick);
+        CropImage.activity(imageUri)
+                .setAspectRatio(1,1)
+                .start(register.this);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && requestCode == GalleryPick) {
-            imageUri = data.getData();
+        if ( requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE && resultCode == RESULT_OK  && data != null) {
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            imageUri = result.getUri();
             img_preview.setImageURI(imageUri);
+        }
+        else{
+            startActivity(new Intent(register.this, register.class));
+            Toast.makeText(this, "Error occurred, please try again", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -123,20 +130,18 @@ public class register extends AppCompatActivity {
 
     }
 
-    private void validate(final String username, final String phone_num, final String password, String email) {
+    private void validate(final String username, final String phone_num, final String password, final String email) {
         final ProgressDialog loading = new ProgressDialog(this);
         loading.setCancelable(true);//you can cancel it by pressing back button
         loading.setMessage("SETTING ACCOUNT...");
-        loading.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        loading.setProgress(0);//initially progress is 0
-        loading.setMax(100);//sets the maximum value 100
+        loading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         loading.show();//displays the progress bar
 
-        Toast.makeText(this, "About to create an acc", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "About to create an account", Toast.LENGTH_SHORT).show();
 
 
         if (imageUri != null){
-            Toast.makeText(this, "setting your acc", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "setting your account", Toast.LENGTH_SHORT).show();
 
             final StorageReference fileRef = mStorageRef.child(phone_num + ".jpg");
             uploadTask = fileRef.putFile(imageUri);
@@ -163,6 +168,7 @@ public class register extends AppCompatActivity {
                                 userData.put("username", username);
                                 userData.put("phone", phone_num);
                                 userData.put("password", password);
+                                userData.put("email", email);
                                 userData.put("image", downloadUrl);
                                 databaseRef.child(username).updateChildren(userData);
 
