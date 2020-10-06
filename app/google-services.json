@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "423914012836",
+    "firebase_url": "https://codeoptics-cba1b.firebaseio.com",
+    "project_id": "codeoptics-cba1b",
+    "storage_bucket": "codeoptics-cba1b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:423914012836:android:13694b090222d5a315e631",
+        "android_client_info": {
+          "package_name": "com.example.codeoptics"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "423914012836-g6vr2dirjhn046sp0ptu80fri8h98dbg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBACV8oxYCA-AE4S2pdYZf_EA_TqCv178"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "423914012836-g6vr2dirjhn046sp0ptu80fri8h98dbg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
