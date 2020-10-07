@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
                         if (snapshot.child("Users").child(username).exists()){
                            Users userData = snapshot.child("Users").child(username).getValue(Users.class);
 
-                           if(username.equals(userData.getUsername()) || password.equals(userData.getPassword())){
+                           if(username.equals(userData.getUsername()) && password.equals(userData.getPassword())){
                                Prevelant.currentOnlineUser = userData;
                                loading.dismiss();
                                Intent intent = new Intent(MainActivity.this, dashboard.class );
